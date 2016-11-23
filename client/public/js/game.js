@@ -24,6 +24,8 @@ function dotsOfPiece(n, x, y) {
   let dots;
 
   switch (n) {
+    case 0:
+      break;
     case 1:
       dots = [middle];
       break;
@@ -53,14 +55,32 @@ function dotsOfPiece(n, x, y) {
  * @param {array} domino The domino piece's values
  * @param {number} x The horizontal position of the piece
  * @param {number} y The vertical position of the piece
+ * @param {bool} horizontal Whether the piece is in horizontal position or not
  */
-function drawDomino(domino, x, y = height/2) {
-  rect(x, y, dominoSize, dominoSize);
-  rect(x + dominoSize, y, dominoSize, dominoSize);
+function drawDomino(domino, x, y, horizontal = true) {
+  let x1;
+  let y1;
+  let x2;
+  let y2;
 
-  let first = dotsOfPiece(domino[0], x, y);
-  let second = dotsOfPiece(domino[1], x + dominoSize, y);
+  if (horizontal) {
+    x1 = x;
+    x2 = x + dominoSize;
+    y1 = y2 = y;
+  } else {
+    x1 = x2 = x;
+    y1 = y;
+    y2 = y + dominoSize;
+  }
 
+  fill(236, 232, 196);
+  rect(x1, y1, dominoSize, dominoSize);
+  rect(x2, y2, dominoSize, dominoSize);
+
+  let first = dotsOfPiece(domino[0], x1, y1);
+  let second = dotsOfPiece(domino[1], x2, y2);
+
+  fill(0);
   first.forEach((dots) => {
     ellipse(dots.x, dots.y, dominoDot);
   });
@@ -76,7 +96,8 @@ function drawDomino(domino, x, y = height/2) {
  * Sets up the p5 environment
  */
 function setup() {
-  createCanvas(600, 400);
+  let canvas = createCanvas(600, 400);
+  canvas.parent('main-container');
 }
 
 /**
@@ -89,7 +110,8 @@ function draw() {
   clear();
   let x = 10;
   dominos.forEach((piece) => {
-    drawDomino(piece, x);
+    // drawDomino(piece, x, height / 2, false);
+    drawDomino(piece, width / 2, x, false);
     x += 2 * dominoSize + delta;
   });
 }

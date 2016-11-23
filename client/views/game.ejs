@@ -1,6 +1,9 @@
-<%- include('templates/header'); %>
-<h1>Testing the drawings :)</h1>
+<%- include('templates/header', { title: 'Play!', styles: ['game'] }); %>
+<div class="container center" id="main-container">
+  <h1>Testing the drawings :)</h1>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.4/p5.min.js"></script>
 <script src="js/game.js"></script>
+<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
 <%- include('templates/footer'); %>
