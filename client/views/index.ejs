@@ -1,6 +1,14 @@
 <%- include('templates/header', { title: "Welcome!", styles: [] }); %>
 <div class="container center">
-  <h1>Hi</h1>
-  <a class="waves-effect waves-light btn" href="/game">Start game</a>
+  <h1>Hi, let's play Domino!</h1>
+  <div class="row center">
+    <form class="col s12" id="startForm">
+      <div class="input-field col s8 center">
+        <input id="username" type="text" class="validate" pattern="[a-zA-Z][a-zA-Z0-9_-]{3,}" required>
+        <label for="username" data-error="please enter a valid username">Username</label>
+      </div>
+      <a class="waves-effect waves-light btn" type="submit" onclick="startGame()">Start game</a>
+    </form>
+  </div>
 </div>
 <%- include('templates/footer'); %>
