@@ -16,37 +16,61 @@ def gen_token():
 logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 sio = socketio.Server()
 app = Flask(__name__)
-logged_users = {}
-players = []
+players = {}
 
 
 @sio.on('connect')
 def connect(sid, environ):
-    print('connect ', sid)
+    print 'connect ', sid
 
 
-@sio.on('start-game')
+@sio.on('start_game')
 def start_game(sid, data):
-    print 'start-game'
+    global players
 
+    print 'start-game', sid
+    data = json.loads(data)
 
-@sio.on('message')
-def message(sid, data):
-    print('message ', data)
-    sio.emit('news', '1.2 en distribuidos para el que lo lea', sid)
+    if len(players) < 4:
+        token = gen_token()
+        players[token] = sid
+        res = {
+            'response': True,
+            'message': 'Accepted in the game',
+            'token': token
+        }
+    else:
+        res = {
+            'response': False,
+            'message': 'Game is full, please wait'
+        }
+    print '==> Players: {}'.format(players)
+    sio.emit('start_game', json.dumps(res))
 
 
 @sio.on('disconnect')
 def disconnect(sid):
-    print('disconnect ', sid)
+    print 'disconnect ', sid
 
 
 @sio.on('back')
 def back(sid, data):
-    global logged_users
+    global players
+
     data = json.loads(data)
-    logged_users[data['token']] = sid
-    print 'USERS', logged_users
+    if data['token'] in players:
+        players[data['token']] = sid
+        res = {
+            'response': True,
+            'message': 'Welcome back!'
+        }
+    else:
+        res = {
+            'response': False,
+            'message': 'Session expired'
+        }
+    print '===> Players: {}'.format(players)
+    sio.emit('back', json.dumps(res))
 
 
 if __name__ == '__main__':

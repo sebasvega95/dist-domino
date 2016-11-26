@@ -124,30 +124,6 @@ function setup() {
   dominos.forEach((piece) => {
     horizontal = dir == 0 || dir == 2;
 
-    // if (piece[0] == piece[1]) {
-    //   let drawDir = dir;
-    //   switch (dir) {
-    //     case 0: case 1:
-    //       drawDir += 2;
-    //       break;
-    //     case 2:
-    //       drawDir++;
-    //       break;
-    //     case 3:
-    //       drawDir--;
-    //       break;
-    //   }
-    //
-    //   drawDomino(piece, x + dx[drawDir] * dominoSize,
-    //     y + dy[drawDir] * dominoSize, !horizontal);
-    //   x += dx[dir] * (dominoSize + delta);
-    //   y += dy[dir] * (dominoSize + delta);
-    // } else {
-    //   drawDomino(piece, x, y, horizontal);
-    //   x += dx[dir] * (2 * dominoSize + delta);
-    //   y += dy[dir] * (2 * dominoSize + delta);
-    // }
-
     drawDomino(piece, x, y, horizontal);
     x += dx[dir] * (2 * dominoSize + delta);
     y += dy[dir] * (2 * dominoSize + delta);

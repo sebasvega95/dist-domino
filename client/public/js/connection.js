@@ -25,19 +25,45 @@ function startGame() {
     let data = {
       'username': form['username'].value,
     };
-    socket.emit('start-game', JSON.stringify(data));
+    socket.emit('start_game', JSON.stringify(data));
   } else {
     form['username'].focus();
   }
 }
 
-socket.on('start-game', (data) => {
+socket.on('connect', () => {
+  console.log('Connected');
+  if (localStorage.token) {
+    let load = {'token': localStorage.token};
+    console.log('Logged in');
+    socket.emit('back', JSON.stringify(load));
+  } else if (window.location.toString() !== `${contentServer}/`) {
+    window.location.replace(`${contentServer}/`);
+  }
+});
+
+socket.on('back', (data) => {
   data = JSON.parse(data);
+  console.log(data);
   if (data.response) {
-    // can entry
+    if (window.location.toString() !== `${contentServer}/game`)
+      window.location.replace(`${contentServer}/game`);
+  } else {
+    localStorage.removeItem('token');
+    if (window.location.toString() !== `${contentServer}/`)
+      window.location.replace(`${contentServer}/`);
+  }
+});
+
+socket.on('start_game', (data) => {
+  data = JSON.parse(data);
+  console.log(data);
+  if (data.response) {
+    // can enter
+    localStorage.token = data.token;
     window.location.replace(`${contentServer}/game`);
   } else {
-    // can not
-    alert('You can not enter this game');
+    // can't enter
+    alert(data.message);
   }
 });
