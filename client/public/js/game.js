@@ -5,6 +5,18 @@ const dominoSize = 30;
 const dominoDot = dominoSize * 0.1;
 const dx = [1, 0, -1, 0];
 const dy = [0, 1, 0, -1];
+const delta = 5;
+
+/* ----- Global variables ----- */
+let x;
+let limInfX;
+let limSupX;
+let y;
+let limInfY;
+let limSupY;
+let dir;
+let horizontal;
+let dominos;
 
 /* ----- Domino drawing -----*/
 
@@ -100,36 +112,32 @@ function drawDomino(domino, x, y, horizontal = true) {
 function setup() {
   let canvas = createCanvas(600, 400);
   canvas.parent('main-container');
-  const dominos = [
-    [0, 0],
-    [0, 1], [1, 1],
-    [0, 2], [1, 2], [2, 2],
-    [0, 3], [1, 3], [2, 3], [3, 3],
-    [0, 4], [1, 4], [2, 4], [3, 4], [4, 4],
-    [0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5],
-    [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6],
-  ];
-  const delta = 5;
 
+  x = 10;
+  limInfX = x;
+  limSupX = width;
+  y = 10;
+  limInfY = 2 * y + dominoSize;
+  limSupY = height;
+  dir = 0;
+  horizontal = true;
+}
+
+/**
+ * Draws using p5
+ */
+function draw() {
   clear();
-  let x = 10;
-  let limInfX = x;
-  let limSupX = width;
-  let y = 10;
-  let limInfY = 2 * y + dominoSize;
-  let limSupY = height;
-  let dir = 0;
-  let horizontal;
+  if (dominos && dominos instanceof Array) {
+    dominos.forEach((piece) => {
+      horizontal = dir == 0 || dir == 2;
 
-  dominos.forEach((piece) => {
-    horizontal = dir == 0 || dir == 2;
+      drawDomino(piece, x, y, horizontal);
+      x += dx[dir] * (2 * dominoSize + delta);
+      y += dy[dir] * (2 * dominoSize + delta);
 
-    drawDomino(piece, x, y, horizontal);
-    x += dx[dir] * (2 * dominoSize + delta);
-    y += dy[dir] * (2 * dominoSize + delta);
-
-    switch (dir) {
-      case 0:
+      switch (dir) {
+        case 0:
         if (x + 2 * dominoSize >= limSupX) {
           x -= dominoSize + delta;
           limSupX = x + dominoSize / 2;
@@ -137,7 +145,7 @@ function setup() {
           dir++;
         }
         break;
-      case 1:
+        case 1:
         if (y + 2 * dominoSize >= limSupY) {
           y -= dominoSize + delta;
           limSupY = y + dominoSize / 2;
@@ -145,7 +153,7 @@ function setup() {
           dir++;
         }
         break;
-      case 2:
+        case 2:
         if (x <= limInfX) {
           x += 2 * dominoSize + delta;
           limInfX = x + dominoSize / 2;
@@ -153,7 +161,7 @@ function setup() {
           dir++;
         }
         break;
-      case 3:
+        case 3:
         if (y <= limInfY) {
           y += 2 * dominoSize + delta;
           limInfY = y + dominoSize / 2;
@@ -161,14 +169,14 @@ function setup() {
           dir++;
         }
         break;
-    }
+      }
 
-    dir %= 4;
-  });
-}
-
-/**
- * Draws using p5
- */
-function draw() {
+      dir %= 4;
+    });
+  } else {
+    textSize(32);
+    textAlign(CENTER);
+    fill(187, 49, 114);
+    text(gameMessage, width / 2, height / 2);
+  }
 }

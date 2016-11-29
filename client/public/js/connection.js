@@ -3,6 +3,7 @@
 const socketServer = 'http://localhost:9000';
 const contentServer = 'http://localhost:8080';
 const socket = io.connect(socketServer);
+let gameMessage = '';
 
 /**
  * Adds two numbers together.
@@ -20,11 +21,10 @@ function preventSubmit(evt) {
  */
 function startGame() {
   let form = document.getElementById('startForm');
-  let userPatt = new RegExp('[a-zA-Z][a-zA-Z0-9_-]{3,}');
+  let userPatt = /[a-zA-Z][a-zA-Z0-9_-]{3,}/;
   if (userPatt.test(form['username'].value)) {
-    let data = {
-      'username': form['username'].value,
-    };
+    let data = {'username': form['username'].value};
+    console.log(data);
     socket.emit('start_game', JSON.stringify(data));
   } else {
     form['username'].focus();
@@ -66,4 +66,10 @@ socket.on('start_game', (data) => {
     // can't enter
     alert(data.message);
   }
+});
+
+socket.on('update_num_players', (data) => {
+  data = JSON.parse(data);
+  console.log(data);
+  gameMessage = data.message;
 });
