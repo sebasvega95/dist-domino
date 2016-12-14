@@ -5,7 +5,7 @@ import socketio
 import eventlet
 from flask import Flask
 import json
-from random import choice
+from random import choice, shuffle
 from string import ascii_uppercase
 
 
@@ -17,25 +17,32 @@ logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 sio = socketio.Server()
 app = Flask(__name__)
 players = {}
+board = []
+turn = 0
 
 
 @sio.on('connect')
 def connect(sid, environ):
     print 'connect', sid
 
+def distribute_pieces():
+    global players
+    all_pieces = [
+        [0, 0], [0, 1], [1, 1], [0, 2], [1, 2], [2, 2], [0, 3],
+        [1, 3], [2, 3], [3, 3], [0, 4], [1, 4], [2, 4], [3, 4],
+        [4, 4], [0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5],
+        [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6]
+    ]
+    shuffle(all_pieces)
+    for i, key in enumerate(players.keys()):
+        players[key]['pieces'] = all_pieces[7*i:7*(i+1)]
 
-def update_num_players():
-    if len(players) < 4:
-        if len(players) == 3:
-            message = 'Waiting for another player'
-        else:
-            message = 'Waiting for another {} players'.format(4 - len(players))
-        res = {
-            'response': False,
-            'message': message
-        }
-    print '==> Num players: {}'.format(message)
-    sio.emit('update_num_players', json.dumps(res))
+
+def find_first_player():
+    global players
+    for i, value in players.values():
+        if [6, 6] in value['pieces']:
+            return i
 
 
 @sio.on('start_game')
@@ -56,6 +63,18 @@ def start_game(sid, data):
             'message': 'Accepted in the game',
             'token': token
         }
+        if len(players) == 4:
+            distribute_pieces()
+            # update_board to initialize the game
+            idx_first_player = find_first_player()
+            turn_token = players.keys()[idx_first_player]
+            turn_name  = players[turn_token]['name']
+            res = {
+                'board': board,
+                'turnToken': turn_token,
+                'turnName' : turn_name
+            }
+            sio.emit('update_board', json.dumps(res))
     else:
         res = {
             'response': False,
@@ -63,8 +82,6 @@ def start_game(sid, data):
         }
     print '==> Players: {}'.format(players)
     sio.emit('start_game', json.dumps(res), room=sid)
-    if res['response']:
-        update_num_players()
 
 
 @sio.on('disconnect')
@@ -90,6 +107,27 @@ def back(sid, data):
         }
     print '===> Players: {}'.format(players)
     sio.emit('back', json.dumps(res), room=sid)
+
+
+@sio.on('move')
+def player_move(sid, data):
+    global board, turn
+    data = json.loads(data)
+    if (data.side == 'head'):
+        board.insert(0, data.piece_selected)
+    else:
+        board.append(data.piece_selected)
+    turn = (turn + 1) % 4
+    next_turn_token = players.keys()[turn]
+    next_turn_name  = player[next_turn_name][name]
+    res = {
+        'board': board,
+        'turnToken': next_turn_token,
+        'turnName' : next_turn_name
+    }
+    print 'next player: {}. token: {}'.format(turn, next_turn_token)
+    sio.emit('update_board', json.dumps(res))
+    # next turn
 
 
 if __name__ == '__main__':
