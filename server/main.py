@@ -65,7 +65,7 @@ def start_game(sid, data):
         }
         if len(players) == 4:
             distribute_pieces()
-            # update_board to initialize the game
+            # update_game to initialize the game
             idx_first_player = find_first_player()
             turn_token = players.keys()[idx_first_player]
             turn_name  = players[turn_token]['name']
@@ -74,7 +74,7 @@ def start_game(sid, data):
                 'turnToken': turn_token,
                 'turnName' : turn_name
             }
-            sio.emit('update_board', json.dumps(res))
+            sio.emit('update_game', json.dumps(res))
     else:
         res = {
             'response': False,
@@ -129,7 +129,7 @@ def player_move(sid, data):
             'turnToken': next_turn_token,
             'turnName' : next_turn_name
         }
-        sio.emit('update_board', json.dumps(res), sid=value['sid'])
+        sio.emit('update_game', json.dumps(res), sid=value['sid'])
 
 
 if __name__ == '__main__':
