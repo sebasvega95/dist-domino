@@ -114,20 +114,22 @@ def player_move(sid, data):
     global board, turn
     data = json.loads(data)
     if (data.side == 'head'):
-        board.insert(0, data.piece_selected)
+        board.insert(0, data['pieceSelected'])
     else:
-        board.append(data.piece_selected)
+        board.append(data['pieceSelected'])
+    players[data['token']]['pieces'].remove(data['pieceSelected'])
     turn = (turn + 1) % 4
     next_turn_token = players.keys()[turn]
     next_turn_name  = player[next_turn_name][name]
-    res = {
-        'board': board,
-        'turnToken': next_turn_token,
-        'turnName' : next_turn_name
-    }
     print 'next player: {}. token: {}'.format(turn, next_turn_token)
-    sio.emit('update_board', json.dumps(res))
-    # next turn
+    for value in player.values():
+        res = {
+            'board': board,
+            'pieces': value['pieces'],
+            'turnToken': next_turn_token,
+            'turnName' : next_turn_name
+        }
+        sio.emit('update_board', json.dumps(res), sid=value['sid'])
 
 
 if __name__ == '__main__':
