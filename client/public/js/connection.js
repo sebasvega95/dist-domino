@@ -9,17 +9,6 @@ let token;
 let gameStarted = false;
 
 /**
- * Adds two numbers together.
- * @param {object} evt The event of submit
- * @return {boolean} return false to prevent form submit
- */
-function preventSubmit(evt) {
-  console.log(evt);
-  evt.preventDefault();
-  return false;
-}
-
-/**
  * Emit start-game before a player can enter the game
  */
 function startGame() {
@@ -36,7 +25,7 @@ function startGame() {
 
 socket.on('connect', () => {
   console.log('Connected');
-  $('#loginButton').removeAttr('disabled');
+  setTimeout(() => $('#loginButton').removeClass('disabled'), 1000);
   // if (localStorage.token) {
   //   let load = {'token': localStorage.token};
   //   console.log('Logged in');
@@ -49,7 +38,7 @@ socket.on('connect', () => {
 socket.on('disconnect', () => {
   console.log('Disconnected');
   window.dominos = [];
-  $('#loginButton').prop('disabled', true);
+  $('#loginButton').addClass('disabled');
   $('#main-container').empty();
   $('#main-container').load('/resources/login.html');
 });
@@ -100,6 +89,12 @@ function unicodeDomino(num) {
   return `&#x${code.toString(16)};`;
 }
 
+/**
+ * Decide Whether disabled or not a possible piece button
+ * @param {array} p is possible piece
+   @param {string} dir is the possible side of board to play
+ * @return {string} return the decision
+ */
 function checkBoard(p, dir) {
   if (window.dominos.length === 0) {
     if (p.toString() === '6,6')
@@ -129,12 +124,33 @@ function checkBoard(p, dir) {
 }
 
 function move(p, dir) {
+  let piece = p.slice();
+  if (window.dominos.length > 0) {
+    if (dir === 'head') {
+      act = window.dominos[0][0];
+      if (piece[1] !== act)
+        piece.reverse();
+    } else {
+      act = window.dominos[window.dominos.length - 1][1];
+      if (piece[0] !== act)
+        piece.reverse();
+    }
+  }
+
   let data = {
     side: dir,
-    pieceSelected: p,
+    pieceSelected: piece,
     token: token,
   };
+  socket.emit('move', JSON.stringify(data));
+}
 
+function passTurn() {
+  let data = {
+    side: '',
+    pieceSelected: [],
+    token: token,
+  };
   socket.emit('move', JSON.stringify(data));
 }
 
@@ -146,7 +162,26 @@ socket.on('update_game', (data) => {
   window.dominos = data.board;
   playerPieces = data.pieces;
   setTimeout(() => {
-    $('#header').html(`It's ${data.turnName}'s turn`);
+    $('#header').empty();
+    data.players.forEach((pl) => {
+      let color = 'black-text';
+      if (pl === data.turnName)
+        color = 'teal-text';
+
+      let text = $.parseHTML(`
+        <span class="${color}">${pl}</span>
+      `);
+      $('#header').append(text);
+    });
+
+    $('#pass-container').empty();
+    if (data.makePass && token === data.turnToken) {
+      let passButton = $.parseHTML(`
+        <a class="waves-effect waves-light btn" onclick="passTurn()">Pasar</a>
+      `);
+      $('#pass-container').append(passButton);
+    }
+
     $('#pieces-container').empty();
     playerPieces.forEach((p) => {
       let pieceUnicode = unicodeDomino(`${p[0]}${p[1]}`);
@@ -161,12 +196,14 @@ socket.on('update_game', (data) => {
           style="font-size: 3.5em;"
           class="collection-item">
           ${pieceUnicode}
-          <a class="waves-effect waves-light btn" onclick="move([${p}], 'head')"
-            ${canHead} style="font-size: 1em;">
+          <a class="waves-effect waves-light btn ${canHead}"
+            onclick="move([${p}], 'head')"
+            style="font-size: 1em;">
             Head
           </a>
-          <a class="waves-effect waves-light btn" onclick="move([${p}], 'tail')"
-            ${canTail} style="font-size: 1em;">
+          <a class="waves-effect waves-light btn ${canTail}"
+            onclick="move([${p}], 'tail')"
+            style="font-size: 1em;">
             Tail
           </a>
         </li>
@@ -174,5 +211,34 @@ socket.on('update_game', (data) => {
       $('#pieces-container').append(pieceA);
     });
     gameStarted = true;
-  }, gameStarted ? 50 : 1000);
+  }, gameStarted ? 50 : 3000);
+});
+
+socket.on('game_over', (data) => {
+  data = JSON.parse(data);
+  window.dominos = data.board;
+
+  $('#header').empty();
+  if (data.status === 'winner') {
+    $('#header').append(`The winner is ${data.winner_name}`);
+    $('#pieces-container').empty();
+  } else if (data.status === 'tie') {
+    $('#header').append(`No one can play anymore.
+      The winner is ${data.winner_name} because has less points`);
+
+    $('#pass-container').empty();
+    $('#pass-container').append('<h1>Scoreboard</h1>');
+
+    $('#pieces-container').empty();
+    data.players.forEach((pl, i) => {
+      let playerPoints = $.parseHTML(`
+          <li class="collection-item">
+            ${pl}: ${data.points[i]}
+          </li>
+      `);
+      $('#pieces-container').append(playerPoints);
+    });
+  } else {
+    console.log('Problem with game_over socket event');
+  }
 });

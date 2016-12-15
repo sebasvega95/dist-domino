@@ -5,6 +5,12 @@
       <input id="username" type="text" class="validate" pattern="[a-zA-Z][a-zA-Z0-9_-]{3,}" required>
       <label for="username" data-error="please enter a valid username">Username</label>
     </div>
-    <a class="waves-effect waves-light btn" id="loginButton" type="submit" onclick="startGame()" disabled>Start game</a>
+    <a class="waves-effect waves-light btn disabled" id="loginButton" type="submit">Start game</a>
   </form>
 </div>
+<script>
+  $('#startForm').submit(function(e) {
+    e.preventDefault();
+    startGame();
+  });
+</script>

@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-import logging
+# import logging
 import socketio
 import eventlet
 from flask import Flask
@@ -51,6 +51,58 @@ def find_first_player():
     return 0
 
 
+def can_play(player):
+    global board
+    canPlay = False
+    head = board[0][0]
+    tail = board[-1][1]
+    for piece in player['pieces']:
+        if head in piece or tail in piece:
+            canPlay = True
+            break
+    return canPlay
+
+
+def end_game_checker():
+    ''' Check tie, keep playing or winner'''
+    global players, board
+
+    res = None
+    # Check winner
+    cur_player_token = players.keys()[turn]
+    if len(players[cur_player_token]['pieces']) == 0:
+        res = {
+            'status': 'winner',
+            'winner_name': players[cur_player_token]['name'],
+            'board': board
+        }
+    else:
+        # Check tie
+        tie = True
+        for v in players.values():
+            if can_play(v):
+                tie = False
+                break
+        if tie:
+            points = []
+            for val in players.values():
+                suma = sum([sum(x) for x in val['pieces']])
+                points.append(suma)
+            winner_idx = points.index(min(points))
+            winner_name = players[players.keys()[winner_idx]]['name']
+            res = {
+                'status': 'tie',
+                'winner_name': winner_name,
+                'board': board,
+                'players': [p['name'] for p in players.values()],
+                'points': points
+            }
+    if res:
+        sio.emit('game_over', json.dumps(res))
+        return True
+    return False
+
+
 @sio.on('start_game')
 def start_game(sid, data):
     global players
@@ -82,6 +134,7 @@ def start_game(sid, data):
                     'board': board,
                     'pieces': value['pieces'],
                     'turnToken': turn_token,
+                    'players': [p['name'] for p in players.values()],
                     'turnName': turn_name
                 }
                 sio.emit('update_game', json.dumps(res), room=value['sid'])
@@ -91,7 +144,6 @@ def start_game(sid, data):
             'message': 'Game is full, please wait'
         }
         sio.emit('start_game', json.dumps(res), room=sid)
-    print '==> Players: {}'.format(players)
 
 
 @sio.on('disconnect')
@@ -104,30 +156,36 @@ def player_move(sid, data):
     global board, turn
     data = json.loads(data)
 
-    if (data['side'] == 'head'):
-        board.insert(0, data['pieceSelected'])
-    else:
-        board.append(data['pieceSelected'])
-
     print 'move', sid, data
-    if data['pieceSelected'] in players[data['token']]['pieces']:
-        players[data['token']]['pieces'].remove(data['pieceSelected'])
-    else:
-        d = data['pieceSelected'][::-1]
-        players[data['token']]['pieces'].remove(d)
-    turn = (turn + 1) % max_players
-    next_turn_token = players.keys()[turn]
-    next_turn_name = players[next_turn_token]['name']
-    print 'next player: {}. token: {}'.format(turn, next_turn_token)
-    for value in players.values():
-        res = {
-            'board': board,
-            'pieces': value['pieces'],
-            'turnToken': next_turn_token,
-            'turnName': next_turn_name
-        }
-        sio.emit('update_game', json.dumps(res), room=value['sid'])
-        print 'updated', value['sid']
+    if data['side'] != '':
+        if (data['side'] == 'head'):
+            board.insert(0, data['pieceSelected'])
+        else:
+            board.append(data['pieceSelected'])
+
+        if data['pieceSelected'] in players[data['token']]['pieces']:
+            players[data['token']]['pieces'].remove(data['pieceSelected'])
+        else:
+            d = data['pieceSelected'][::-1]
+            players[data['token']]['pieces'].remove(d)
+
+    print board
+    if not end_game_checker():
+        turn = (turn + 1) % max_players
+        next_turn_token = players.keys()[turn]
+        next_turn_name = players[next_turn_token]['name']
+        print 'next player: {}. token: {}'.format(turn, next_turn_token)
+        makePass = not can_play(players[next_turn_token])
+        for value in players.values():
+            res = {
+                'board': board,
+                'pieces': value['pieces'],
+                'turnToken': next_turn_token,
+                'turnName': next_turn_name,
+                'players': [p['name'] for p in players.values()],
+                'makePass': makePass
+            }
+            sio.emit('update_game', json.dumps(res), room=value['sid'])
 
 
 if __name__ == '__main__':

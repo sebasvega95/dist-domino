@@ -3,6 +3,8 @@
 /* ----- Constants ----- */
 const dominoSize = 30;
 const dominoDot = dominoSize * 0.1;
+
+// right, down, left, up
 const dx = [1, 0, -1, 0];
 const dy = [0, 1, 0, -1];
 const delta = 5;
@@ -87,12 +89,15 @@ function drawDomino(domino, x, y, horizontal = true) {
     y2 = y + dominoSize;
   }
 
+  strokeWeight(1);
   fill(236, 232, 196);
   rect(x1, y1, dominoSize, dominoSize);
   rect(x2, y2, dominoSize, dominoSize);
 
+
   let first = dotsOfPiece(domino[0], x1, y1);
   let second = dotsOfPiece(domino[1], x2, y2);
+
 
   fill(0);
   first.forEach((dots) => {
@@ -129,8 +134,13 @@ function draw() {
 
   clear();
   if (dominos && dominos instanceof Array) {
-    dominos.forEach((piece) => {
-      horizontal = dir == 0 || dir == 2;
+    dominos.forEach((p) => {
+      horizontal = dir === 0 || dir === 2;
+      invert = dir === 2 || dir === 3;
+
+      let piece = p.slice();
+      if (invert)
+        piece.reverse();
 
       drawDomino(piece, x, y, horizontal);
       x += dx[dir] * (2 * dominoSize + delta);
@@ -138,37 +148,37 @@ function draw() {
 
       switch (dir) {
         case 0:
-        if (x + 2 * dominoSize >= limSupX) {
-          x -= dominoSize + delta;
-          limSupX = x + dominoSize / 2;
-          y += dominoSize + delta;
-          dir++;
-        }
-        break;
+          if (x + 2 * dominoSize >= limSupX) {
+            x -= dominoSize + delta;
+            limSupX = x + dominoSize / 2;
+            y += dominoSize + delta;
+            dir++;
+          }
+          break;
         case 1:
-        if (y + 2 * dominoSize >= limSupY) {
-          y -= dominoSize + delta;
-          limSupY = y + dominoSize / 2;
-          x -= 2 * dominoSize + delta;
-          dir++;
-        }
-        break;
+          if (y + 2 * dominoSize >= limSupY) {
+            y -= dominoSize + delta;
+            limSupY = y + dominoSize / 2;
+            x -= 2 * dominoSize + delta;
+            dir++;
+          }
+          break;
         case 2:
-        if (x <= limInfX) {
-          x += 2 * dominoSize + delta;
-          limInfX = x + dominoSize / 2;
-          y -= 2 * dominoSize + delta;
-          dir++;
-        }
-        break;
+          if (x <= limInfX) {
+            x += 2 * dominoSize + delta;
+            limInfX = x + dominoSize / 2;
+            y -= 2 * dominoSize + delta;
+            dir++;
+          }
+          break;
         case 3:
-        if (y <= limInfY) {
-          y += 2 * dominoSize + delta;
-          limInfY = y + dominoSize / 2;
-          x += dominoSize + delta;
-          dir++;
-        }
-        break;
+          if (y <= limInfY) {
+            y += 2 * dominoSize + delta;
+            limInfY = y + dominoSize / 2;
+            x += dominoSize + delta;
+            dir++;
+          }
+          break;
       }
 
       dir %= 4;
