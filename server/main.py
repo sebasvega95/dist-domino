@@ -13,17 +13,19 @@ def gen_token():
     return ''.join(choice(ascii_uppercase) for i in range(12))
 
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+# logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 sio = socketio.Server()
 app = Flask(__name__)
 players = {}
 board = []
 turn = 0
+max_players = 2
 
 
 @sio.on('connect')
 def connect(sid, environ):
     print 'connect', sid
+
 
 def distribute_pieces():
     global players
@@ -40,9 +42,11 @@ def distribute_pieces():
 
 def find_first_player():
     global players
-    for i, value in players.values():
+
+    for i, value in enumerate(players.values()):
         if [6, 6] in value['pieces']:
             return i
+    return 0
 
 
 @sio.on('start_game')
@@ -52,7 +56,7 @@ def start_game(sid, data):
     print 'start_game', sid
     data = json.loads(data)
 
-    if len(players) < 4:
+    if len(players) < max_players:
         token = gen_token()
         players[token] = {
             'sid': sid,
@@ -63,50 +67,37 @@ def start_game(sid, data):
             'message': 'Accepted in the game',
             'token': token
         }
-        if len(players) == 4:
+        sio.emit('start_game', json.dumps(res), room=sid)
+        if len(players) == max_players:
             distribute_pieces()
+
             # update_game to initialize the game
             idx_first_player = find_first_player()
             turn_token = players.keys()[idx_first_player]
-            turn_name  = players[turn_token]['name']
-            res = {
-                'board': board,
-                'turnToken': turn_token,
-                'turnName' : turn_name
-            }
-            sio.emit('update_game', json.dumps(res))
+            turn_name = players[turn_token]['name']
+            print players.values()
+            for value in players.values():
+                print value
+                res = {
+                    'board': board,
+                    'pieces': value['pieces'],
+                    'turnToken': turn_token,
+                    'turnName': turn_name
+                }
+                sio.emit('update_game', json.dumps(res), room=value['sid'])
+                print 'emited'
     else:
         res = {
             'response': False,
             'message': 'Game is full, please wait'
         }
+        sio.emit('start_game', json.dumps(res), room=sid)
     print '==> Players: {}'.format(players)
-    sio.emit('start_game', json.dumps(res), room=sid)
 
 
 @sio.on('disconnect')
 def disconnect(sid):
     print 'disconnect', sid
-
-
-@sio.on('back')
-def back(sid, data):
-    global players
-
-    data = json.loads(data)
-    if data['token'] in players:
-        players[data['token']]['sid'] = sid
-        res = {
-            'response': True,
-            'message': 'Welcome back!'
-        }
-    else:
-        res = {
-            'response': False,
-            'message': 'Session expired'
-        }
-    print '===> Players: {}'.format(players)
-    sio.emit('back', json.dumps(res), room=sid)
 
 
 @sio.on('move')
@@ -118,16 +109,16 @@ def player_move(sid, data):
     else:
         board.append(data['pieceSelected'])
     players[data['token']]['pieces'].remove(data['pieceSelected'])
-    turn = (turn + 1) % 4
+    turn = (turn + 1) % max_players
     next_turn_token = players.keys()[turn]
-    next_turn_name  = player[next_turn_name][name]
+    next_turn_name = players[next_turn_token]['name']
     print 'next player: {}. token: {}'.format(turn, next_turn_token)
-    for value in player.values():
+    for value in players.values():
         res = {
             'board': board,
             'pieces': value['pieces'],
             'turnToken': next_turn_token,
-            'turnName' : next_turn_name
+            'turnName': next_turn_name
         }
         sio.emit('update_game', json.dumps(res), sid=value['sid'])
 

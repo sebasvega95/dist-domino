@@ -111,7 +111,7 @@ function drawDomino(domino, x, y, horizontal = true) {
  */
 function setup() {
   let canvas = createCanvas(600, 400);
-  canvas.parent('main-container');
+  canvas.parent('canvas-container');
 
   x = 10;
   limInfX = x;
