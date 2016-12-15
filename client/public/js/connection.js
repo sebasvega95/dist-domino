@@ -6,6 +6,7 @@ const socket = io.connect(socketServer);
 let gameMessage = '';
 let playerPieces = [];
 let token;
+let gameStarted = false;
 
 /**
  * Adds two numbers together.
@@ -35,6 +36,7 @@ function startGame() {
 
 socket.on('connect', () => {
   console.log('Connected');
+  $('#loginButton').removeAttr('disabled');
   // if (localStorage.token) {
   //   let load = {'token': localStorage.token};
   //   console.log('Logged in');
@@ -46,6 +48,8 @@ socket.on('connect', () => {
 
 socket.on('disconnect', () => {
   console.log('Disconnected');
+  window.dominos = [];
+  $('#loginButton').prop('disabled', true);
   $('#main-container').empty();
   $('#main-container').load('/resources/login.html');
 });
@@ -70,7 +74,12 @@ socket.on('start_game', (data) => {
     // can enter
     token = data.token;
     $('#main-container').empty();
-    $('#main-container').load('/resources/game.html');
+    $('#main-container').load('/resources/game.html', () => {
+      console.log('yay');
+      // $.getScript('https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.4/p5.min.js', () => {
+      //   $.getScript('js/game.js');
+      // });
+    });
     // localStorage.token = data.token;
     // window.location.replace(`${contentServer}/game`);
   } else {
@@ -91,21 +100,79 @@ function unicodeDomino(num) {
   return `&#x${code.toString(16)};`;
 }
 
+function checkBoard(p, dir) {
+  if (window.dominos.length === 0) {
+    if (p.toString() === '6,6')
+      return '';
+    return 'disabled';
+  }
+
+  let act;
+  let comp;
+  if (dir === 'head') {
+    act = window.dominos[0][0];
+    comp = 1;
+  } else {
+    act = window.dominos[window.dominos.length - 1][1];
+    comp = 0;
+  }
+
+  if (p[comp] === act)
+    return '';
+
+  p.reverse();
+  if (p[comp] === act)
+    return '';
+
+  p.reverse();
+  return 'disabled';
+}
+
+function move(p, dir) {
+  let data = {
+    side: dir,
+    pieceSelected: p,
+    token: token,
+  };
+
+  socket.emit('move', JSON.stringify(data));
+}
+
 socket.on('update_game', (data) => {
   data = JSON.parse(data);
   console.log('Update_data:');
   console.log(data);
 
-  dominos = data.board;
+  window.dominos = data.board;
   playerPieces = data.pieces;
+  setTimeout(() => {
+    $('#header').html(`It's ${data.turnName}'s turn`);
+    $('#pieces-container').empty();
+    playerPieces.forEach((p) => {
+      let pieceUnicode = unicodeDomino(`${p[0]}${p[1]}`);
+      let canHead = checkBoard(p, 'head');
+      let canTail = checkBoard(p, 'tail');
 
-  $('#header').html(`It's ${data.turnName}'s turn`);
-  $('#pieces-container').empty();
-  playerPieces.forEach((p) => {
-    let pieceUnicode = unicodeDomino(`${p[0]}${p[1]}`);
-    let pieceA = $.parseHTML(`
-      <li style="font-size: 5em;" class="collection-item">${pieceUnicode}</li>
-    `);
-    $('#pieces-container').append(pieceA);
-  });
+      if (token !== data.turnToken)
+        canHead = canTail = 'disabled';
+
+      let pieceA = $.parseHTML(`
+        <li
+          style="font-size: 3.5em;"
+          class="collection-item">
+          ${pieceUnicode}
+          <a class="waves-effect waves-light btn" onclick="move([${p}], 'head')"
+            ${canHead} style="font-size: 1em;">
+            Head
+          </a>
+          <a class="waves-effect waves-light btn" onclick="move([${p}], 'tail')"
+            ${canTail} style="font-size: 1em;">
+            Tail
+          </a>
+        </li>
+      `);
+      $('#pieces-container').append(pieceA);
+    });
+    gameStarted = true;
+  }, gameStarted ? 50 : 1000);
 });

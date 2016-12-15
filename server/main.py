@@ -36,15 +36,17 @@ def distribute_pieces():
         [0, 6], [1, 6], [2, 6], [3, 6], [4, 6], [5, 6], [6, 6]
     ]
     shuffle(all_pieces)
+    per_player = len(all_pieces) / max_players
     for i, key in enumerate(players.keys()):
-        players[key]['pieces'] = all_pieces[7*i:7*(i+1)]
+        players[key]['pieces'] = all_pieces[per_player*i:per_player*(i+1)]
 
 
 def find_first_player():
-    global players
+    global players, turn
 
     for i, value in enumerate(players.values()):
         if [6, 6] in value['pieces']:
+            turn = i
             return i
     return 0
 
@@ -75,9 +77,7 @@ def start_game(sid, data):
             idx_first_player = find_first_player()
             turn_token = players.keys()[idx_first_player]
             turn_name = players[turn_token]['name']
-            print players.values()
             for value in players.values():
-                print value
                 res = {
                     'board': board,
                     'pieces': value['pieces'],
@@ -85,7 +85,6 @@ def start_game(sid, data):
                     'turnName': turn_name
                 }
                 sio.emit('update_game', json.dumps(res), room=value['sid'])
-                print 'emited'
     else:
         res = {
             'response': False,
@@ -104,11 +103,18 @@ def disconnect(sid):
 def player_move(sid, data):
     global board, turn
     data = json.loads(data)
-    if (data.side == 'head'):
+
+    if (data['side'] == 'head'):
         board.insert(0, data['pieceSelected'])
     else:
         board.append(data['pieceSelected'])
-    players[data['token']]['pieces'].remove(data['pieceSelected'])
+
+    print 'move', sid, data
+    if data['pieceSelected'] in players[data['token']]['pieces']:
+        players[data['token']]['pieces'].remove(data['pieceSelected'])
+    else:
+        d = data['pieceSelected'][::-1]
+        players[data['token']]['pieces'].remove(d)
     turn = (turn + 1) % max_players
     next_turn_token = players.keys()[turn]
     next_turn_name = players[next_turn_token]['name']
@@ -120,7 +126,8 @@ def player_move(sid, data):
             'turnToken': next_turn_token,
             'turnName': next_turn_name
         }
-        sio.emit('update_game', json.dumps(res), sid=value['sid'])
+        sio.emit('update_game', json.dumps(res), room=value['sid'])
+        print 'updated', value['sid']
 
 
 if __name__ == '__main__':

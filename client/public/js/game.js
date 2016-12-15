@@ -16,7 +16,6 @@ let limInfY;
 let limSupY;
 let dir;
 let horizontal;
-let dominos;
 
 /* ----- Domino drawing -----*/
 
@@ -112,7 +111,12 @@ function drawDomino(domino, x, y, horizontal = true) {
 function setup() {
   let canvas = createCanvas(600, 400);
   canvas.parent('canvas-container');
+}
 
+/**
+ * Draws using p5
+ */
+function draw() {
   x = 10;
   limInfX = x;
   limSupX = width;
@@ -121,12 +125,8 @@ function setup() {
   limSupY = height;
   dir = 0;
   horizontal = true;
-}
+  let dominos = window.dominos;
 
-/**
- * Draws using p5
- */
-function draw() {
   clear();
   if (dominos && dominos instanceof Array) {
     dominos.forEach((piece) => {
@@ -173,10 +173,5 @@ function draw() {
 
       dir %= 4;
     });
-  } else {
-    textSize(32);
-    textAlign(CENTER);
-    fill(187, 49, 114);
-    text(gameMessage, width / 2, height / 2);
   }
 }
